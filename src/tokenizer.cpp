@@ -111,6 +111,9 @@ void SimpleTokenizer::initialize_vocabulary() {
     }
 
     std::string vocab_path = "./bpe_simple_vocab_16e6.txt.gz";
+#ifdef CTC_DATA_DIR
+    vocab_path = std::string(CTC_DATA_DIR) + "/bpe_simple_vocab_16e6.txt.gz";
+#endif
     merges = read_gzip_lines(vocab_path);
     merges = {merges.begin() + 1, merges.begin() + 48895};
 
