@@ -295,7 +295,6 @@ std::vector<int> SimpleTokenizer::encode(const std::string& text) {
         
         for (; iter != end; ++iter) {
             std::string token = iter->str();
-            std::cout << token << std::endl;
             
             // Encode token to UTF-8 bytes, then map through byte_encoder
             auto utf8_bytes = utf8_encode(token);
