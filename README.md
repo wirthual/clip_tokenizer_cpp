@@ -3,6 +3,31 @@
 Adapted from this [code](https://github.com/openai/CLIP/blob/main/clip/simple_tokenizer.py)
 
 
+### Example Usage
+
+```cpp
+#include <iostream>
+#include "tokenizer.h"
+
+int main() {
+
+    // Create a tokenizer instance
+    SimpleTokenizer tokenizer;
+    
+    // Example usage
+    std::string text = "CLIP is a is a multimodal vision and language model motivated by overcoming the fixed number of object categories when training a computer vision model. CLIP learns about images directly from raw text by jointly training on 400M (image, text) pairs. Pretraining on this scale enables zero-shot transfer to downstream tasks. CLIP uses an image encoder and text encoder to get visual features and text features. Both features are projected to a latent space with the same number of dimensions and their dot product gives a similarity score.";
+    
+    std::vector<int> tokens = tokenizer.encode(text);
+    
+    // Decode tokens back to text
+    std::string decoded = tokenizer.decode(tokens);
+    std::cout << "Decoded text: " << decoded << std::endl;
+    
+    return 0;
+}
+
+```
+
 ### Verification test:
 
 Test code in `python_test` folder in this repo.
