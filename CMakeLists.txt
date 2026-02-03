@@ -20,8 +20,15 @@ endif()
 option(CLIP_TOKENIZER_CPP_BUILD_CLI "Build the CLI example" ${CLIP_TOKENIZER_CPP_BUILD_CLI_DEFAULT})
 
 find_package(ZLIB REQUIRED)
+find_package(Python3 COMPONENTS Interpreter Development)
+find_package(pybind11 CONFIG QUIET)
+
+add_subdirectory(extern/pybind)
 
 add_library(clip_tokenizer_cpp src/tokenizer.cpp)
+
+# Enable Position Independent Code for use in shared libraries
+set_target_properties(clip_tokenizer_cpp PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_include_directories(clip_tokenizer_cpp
     PUBLIC
@@ -41,6 +48,15 @@ if (CLIP_TOKENIZER_CPP_BUILD_CLI)
     add_executable(clip_tokenizer_cpp_cli src/main.cpp)
     target_link_libraries(clip_tokenizer_cpp_cli PRIVATE clip_tokenizer_cpp)
 endif()
+
+# Build pybind11 bindings
+pybind11_add_module(clip_tokenizer_cpp_py src/bindings.cpp)
+target_link_libraries(clip_tokenizer_cpp_py PRIVATE clip_tokenizer_cpp)
+
+# Optional: Install the Python module
+install(TARGETS clip_tokenizer_cpp_py
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/python
+)
 
 install(TARGETS clip_tokenizer_cpp
     EXPORT clip_tokenizer_cppTargets
