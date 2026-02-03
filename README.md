@@ -28,6 +28,12 @@ python from hugging face:
 
 Clone this repo in e.g. `thirdpary` folder, then reference it in you CMake file like this:
 
+Checkout
+```bash
+git clone --recursive https://github.com/wirthual/clip_tokenizer_cpp
+```
+
+Add it to your project:
 ```CMake
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/thirdpary/clip_tokenizer_cpp clip_tokenizer_cpp)
@@ -38,3 +44,4 @@ target_link_libraries(my_app
     clip_tokenizer_cpp
 )
 ```
+
