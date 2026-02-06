@@ -32,7 +32,12 @@ jobs:
 
     - name: Build
       run: |
-        cmake --build build --config ${{ matrix.build_type }} -j$(nproc 2>/dev/null || sysctl -n hw.ncpu) 
+        cmake --build build --config ${{ matrix.build_type }} -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
+
+    - name: Run Tests with CTest
+      working-directory: build
+      run: |
+        ctest --output-on-failure --build-config ${{ matrix.build_type }} -V
 
     - name: Run test executable directly
       working-directory: build/tests
