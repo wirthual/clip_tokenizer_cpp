@@ -1,0 +1,40 @@
+name: C++ Tests
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Release]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ zlib1g-dev
+
+    - name: Configure CMake
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+    - name: Build
+      run: |
+        cmake --build build --config ${{ matrix.build_type }} -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
+
+    - name: Run Tests
+      working-directory: build
+      run: |
+        ctest --output-on-failure --build-config ${{ matrix.build_type }} -V
