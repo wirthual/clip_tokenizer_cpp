@@ -24,7 +24,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y cmake g++ zlib1g-dev git
+        sudo apt-get install -y cmake g++ zlib1g-dev git libgtest-dev googletest
 
     - name: Configure CMake
       run: |
