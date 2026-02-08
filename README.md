@@ -1,3 +1,8 @@
+
+
+
+[![C++ Tests](https://github.com/wirthual/clip_tokenizer_cpp/actions/workflows/test.yaml/badge.svg)](https://github.com/wirthual/clip_tokenizer_cpp/actions/workflows/test.yaml)
+
 ## C++ Implementation of CLIP tokenizer
 
 Adapted from this [code](https://github.com/openai/CLIP/blob/main/clip/simple_tokenizer.py)
