@@ -2,14 +2,21 @@
 
 # Fetch GoogleTest
 include(FetchContent)
+
+message(STATUS "Fetching GoogleTest...")
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY https://github.com/google/googletest.git
   GIT_TAG v1.14.0
+  GIT_PROGRESS TRUE
 )
+
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+message(STATUS "Making GoogleTest available...")
 FetchContent_MakeAvailable(googletest)
+message(STATUS "GoogleTest made available successfully")
 
 # Enable testing
 enable_testing()
@@ -28,3 +35,5 @@ target_link_libraries(test_tokenizer
 # Discover tests automatically
 include(GoogleTest)
 gtest_discover_tests(test_tokenizer)
+
+message(STATUS "Tests configured successfully")

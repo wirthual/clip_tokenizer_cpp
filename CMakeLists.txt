@@ -4,6 +4,9 @@ project(clip_tokenizer_cpp)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Enable testing
+enable_testing()
+
 # Ensure debug symbols and no optimization for reliable breakpoints
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3")
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g3")
@@ -97,4 +100,10 @@ install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/clip_tokenizer_cppConfigVersion.cmake
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/clip_tokenizer_cpp
 )
+
+# Add tests subdirectory
+message(STATUS "Adding tests subdirectory...")
+add_subdirectory(tests)
+message(STATUS "Tests subdirectory added")
+
 
