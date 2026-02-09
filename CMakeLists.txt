@@ -25,6 +25,8 @@ option(CLIP_TOKENIZER_CPP_BUILD_CLI "Build the CLI example" ${CLIP_TOKENIZER_CPP
 find_package(ZLIB REQUIRED)
 find_package(Python3 COMPONENTS Interpreter Development)
 find_package(pybind11 CONFIG QUIET)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(PCRE2 REQUIRED libpcre2-8)
 
 add_subdirectory(extern/pybind)
 
@@ -46,6 +48,9 @@ target_compile_definitions(clip_tokenizer_cpp
 )
 
 target_link_libraries(clip_tokenizer_cpp PUBLIC ZLIB::ZLIB)
+target_include_directories(clip_tokenizer_cpp PUBLIC ${PCRE2_INCLUDE_DIRS})
+target_compile_options(clip_tokenizer_cpp PUBLIC ${PCRE2_CFLAGS_OTHER})
+target_link_libraries(clip_tokenizer_cpp PUBLIC ${PCRE2_LIBRARIES})
 
 if (CLIP_TOKENIZER_CPP_BUILD_CLI)
     add_executable(clip_tokenizer_cpp_cli src/main.cpp)
