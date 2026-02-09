@@ -7,6 +7,123 @@
 #include <iomanip>
 #include <zlib.h>
 #include <regex>
+#include <stdexcept>
+
+#ifndef PCRE2_CODE_UNIT_WIDTH
+#define PCRE2_CODE_UNIT_WIDTH 8
+#endif
+#include <pcre2.h>
+
+namespace {
+std::string lowercase_ascii(const std::string& input) {
+    std::string out;
+    out.reserve(input.size());
+    for (unsigned char c : input) {
+        if (c >= 'A' && c <= 'Z') {
+            out.push_back(static_cast<char>(c + ('a' - 'A')));
+        } else {
+            out.push_back(static_cast<char>(c));
+        }
+    }
+    return out;
+}
+
+std::vector<std::string> utf8_split(const std::string& input) {
+    std::vector<std::string> out;
+    out.reserve(input.size());
+    size_t i = 0;
+    while (i < input.size()) {
+        unsigned char c = static_cast<unsigned char>(input[i]);
+        size_t len = 1;
+        if ((c & 0x80) == 0x00) {
+            len = 1;
+        } else if ((c & 0xE0) == 0xC0) {
+            len = 2;
+        } else if ((c & 0xF0) == 0xE0) {
+            len = 3;
+        } else if ((c & 0xF8) == 0xF0) {
+            len = 4;
+        }
+
+        if (i + len > input.size()) {
+            len = 1;
+        }
+
+        out.push_back(input.substr(i, len));
+        i += len;
+    }
+    return out;
+}
+
+struct Pcre2Pattern {
+    pcre2_code* code = nullptr;
+    Pcre2Pattern() {
+        int error_number = 0;
+        PCRE2_SIZE error_offset = 0;
+        const char* pattern =
+            "<\\|startoftext\\|>|<\\|endoftext\\|>|'s|'t|'re|'ve|'m|'ll|'d|[\\p{L}]+|[\\p{N}]|[^\\s\\p{L}\\p{N}]+";
+        code = pcre2_compile(
+            reinterpret_cast<PCRE2_SPTR>(pattern),
+            PCRE2_ZERO_TERMINATED,
+            PCRE2_UTF | PCRE2_UCP | PCRE2_CASELESS,
+            &error_number,
+            &error_offset,
+            nullptr);
+        if (!code) {
+            throw std::runtime_error("Failed to compile PCRE2 pattern");
+        }
+    }
+    ~Pcre2Pattern() {
+        if (code) {
+            pcre2_code_free(code);
+        }
+    }
+};
+
+std::vector<std::string> regex_tokenize(const std::string& text) {
+    static Pcre2Pattern pattern;
+    std::vector<std::string> tokens;
+
+    pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(pattern.code, nullptr);
+    if (!match_data) {
+        throw std::runtime_error("Failed to create PCRE2 match data");
+    }
+
+    PCRE2_SIZE offset = 0;
+    while (offset <= text.size()) {
+        int rc = pcre2_match(
+            pattern.code,
+            reinterpret_cast<PCRE2_SPTR>(text.c_str()),
+            text.size(),
+            offset,
+            0,
+            match_data,
+            nullptr);
+
+        if (rc == PCRE2_ERROR_NOMATCH) {
+            break;
+        }
+        if (rc < 0) {
+            pcre2_match_data_free(match_data);
+            throw std::runtime_error("PCRE2 match error");
+        }
+
+        PCRE2_SIZE* ovector = pcre2_get_ovector_pointer(match_data);
+        PCRE2_SIZE start = ovector[0];
+        PCRE2_SIZE end = ovector[1];
+
+        if (end > start) {
+            tokens.emplace_back(text.substr(start, end - start));
+            offset = end;
+        } else {
+            offset = start + 1;
+        }
+    }
+
+    pcre2_match_data_free(match_data);
+    return tokens;
+}
+} // namespace
 
 SimpleTokenizer::SimpleTokenizer() 
     : bpe_ranks() {
@@ -38,21 +155,34 @@ void SimpleTokenizer::initialize_byte_encoder() {
     byte_encoder.resize(256);
     
     // Map each byte to a string representation, matching Python's bytes_to_unicode()
-    // For printable bytes, use the character itself
+    // For printable bytes, map them to their Latin-1 character equivalents
     // For non-printable, map to chr(256 + offset)
     int n = 0;
     for (int b = 0; b < 256; ++b) {
         if (std::find(bs.begin(), bs.end(), b) != bs.end()) {
-            // Printable: use character itself
-            byte_encoder[b] = std::string(1, static_cast<unsigned char>(b));
-        } else {
-            // Non-printable: map to Unicode char 256+n
-            int unicode_val = 256 + n;
+            // Printable: map to Unicode character equivalent to the byte value
+            // In Latin-1, byte value b maps to Unicode U+00XX
+            int unicode_val = b;
+            
             // Encode as UTF-8
             std::string utf8;
             if (unicode_val < 0x80) {
                 utf8 = std::string(1, static_cast<char>(unicode_val));
             } else if (unicode_val < 0x800) {
+                utf8 += static_cast<char>(0xC0 | (unicode_val >> 6));
+                utf8 += static_cast<char>(0x80 | (unicode_val & 0x3F));
+            } else {
+                utf8 += static_cast<char>(0xE0 | (unicode_val >> 12));
+                utf8 += static_cast<char>(0x80 | ((unicode_val >> 6) & 0x3F));
+                utf8 += static_cast<char>(0x80 | (unicode_val & 0x3F));
+            }
+            byte_encoder[b] = utf8;
+        } else {
+            // Non-printable: map to Unicode char 256+n
+            int unicode_val = 256 + n;
+            // Encode as UTF-8
+            std::string utf8;
+            if (unicode_val < 0x800) {
                 utf8 += static_cast<char>(0xC0 | (unicode_val >> 6));
                 utf8 += static_cast<char>(0x80 | (unicode_val & 0x3F));
             } else {
@@ -144,15 +274,6 @@ void SimpleTokenizer::initialize_vocabulary() {
     cache["<|endoftext|>"] = "<|endoftext|>";
 }
 
-std::string SimpleTokenizer::basic_clean(const std::string& text) {
-    // Simplified: just return trimmed text
-    std::string result = text;
-    // Remove leading/trailing whitespace
-    result.erase(0, result.find_first_not_of(" \t\n\r"));
-    result.erase(result.find_last_not_of(" \t\n\r") + 1);
-    return result;
-}
-
 std::string SimpleTokenizer::whitespace_clean(const std::string& text) {
     std::string result = text;
     // Replace multiple spaces with single space
@@ -178,10 +299,7 @@ std::string SimpleTokenizer::bpe(const std::string& token) {
     }
     
     // Convert token to vector of characters with </w> suffix
-    std::vector<std::string> word;
-    for (size_t i = 0; i < token.length(); ++i) {
-        word.push_back(std::string(1, token[i]));
-    }
+    std::vector<std::string> word = utf8_split(token);
     // Add end-of-word marker to last character
     if (!word.empty()) {
         word.back() += "</w>";
@@ -286,15 +404,12 @@ std::vector<int> SimpleTokenizer::encode(const std::string& text) {
     std::vector<int> bpe_tokens;
         
         // Clean and lowercase
-        std::string cleaned = whitespace_clean(basic_clean(text));
-        std::transform(cleaned.begin(), cleaned.end(), cleaned.begin(), ::tolower);
+        std::string cleaned = whitespace_clean(text);
+        cleaned = lowercase_ascii(cleaned);
         
-        // Find all pattern matches
-        std::sregex_iterator iter(cleaned.begin(), cleaned.end(), pat);
-        std::sregex_iterator end;
-        
-        for (; iter != end; ++iter) {
-            std::string token = iter->str();
+        // Find all pattern matches (Unicode-aware)
+        auto tokens = regex_tokenize(cleaned);
+        for (const auto& token : tokens) {
             
             // Encode token to UTF-8 bytes, then map through byte_encoder
             auto utf8_bytes = utf8_encode(token);

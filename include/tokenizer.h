@@ -40,7 +40,6 @@ private:
 
     std::vector<std::string> read_gzip_lines(const std::string& path);
     
-    std::string basic_clean(const std::string& text);
     std::string whitespace_clean(const std::string& text);
     
     std::set<std::pair<std::string, std::string>> get_pairs(const std::vector<std::string>& word);
