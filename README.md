@@ -32,6 +32,12 @@ int main() {
 }
 
 ```
+### Timing benchmark
+
+Benchmark to tokenize Moby Dick.
+
+![Benchmark](./python_test/tokenizer_encoding_time.png)
+
 
 ### Verification test:
 
