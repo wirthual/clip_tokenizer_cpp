@@ -1,5 +1,6 @@
 import gzip
 import html
+import os
 from functools import lru_cache
 
 import ftfy
@@ -29,7 +30,6 @@ def bytes_to_unicode():
         + list(range(ord("¡"), ord("¬") + 1))
         + list(range(ord("®"), ord("ÿ") + 1))
     )
-
     cs = bs[:]
     n = 0
     for b in range(2**8):
@@ -54,8 +54,11 @@ def get_pairs(word):
 
 
 def basic_clean(text):
-    text = ftfy.fix_text(text)
-    text = html.unescape(html.unescape(text))
+    new_text = ftfy.fix_text(text)
+    new_text = html.unescape(html.unescape(text))
+    if text != new_text:
+        print(f"Original text: {text}")
+        print(f"Cleaned text: {new_text}")
     return text.strip()
 
 
@@ -110,7 +113,7 @@ class SimpleTokenizer(object):
                     j = word.index(first, i)
                     new_word.extend(word[i:j])
                     i = j
-                except Exception:
+                except:
                     new_word.extend(word[i:])
                     break
 
