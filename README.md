@@ -38,6 +38,16 @@ Benchmark to tokenize Moby Dick.
 
 ![Benchmark](./python_test/tokenizer_encoding_time.png)
 
+To run it, install tokenizer in your python environment and run:
+```
+python speed_benchmark.py
+```
+
+To verify the output matches other clip tokenizers:
+```
+python output_verification.py
+```
+
 
 ### Verification test:
 
