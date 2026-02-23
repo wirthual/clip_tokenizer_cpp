@@ -23,6 +23,7 @@ endif()
 option(CLIP_TOKENIZER_CPP_BUILD_CLI "Build the CLI example" ${CLIP_TOKENIZER_CPP_BUILD_CLI_DEFAULT})
 
 find_package(ZLIB REQUIRED)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs)
 find_package(Python3 COMPONENTS Interpreter Development)
 find_package(pybind11 CONFIG QUIET)
 find_package(PkgConfig REQUIRED)
@@ -30,7 +31,10 @@ pkg_check_modules(PCRE2 REQUIRED libpcre2-8)
 
 add_subdirectory(extern/pybind)
 
-add_library(clip_tokenizer_cpp src/tokenizer.cpp)
+add_library(clip_tokenizer_cpp
+    src/tokenizer.cpp
+    src/image_preprocessor.cpp
+)
 
 # Enable Position Independent Code for use in shared libraries
 set_target_properties(clip_tokenizer_cpp PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -48,6 +52,8 @@ target_compile_definitions(clip_tokenizer_cpp
 )
 
 target_link_libraries(clip_tokenizer_cpp PUBLIC ZLIB::ZLIB)
+target_link_libraries(clip_tokenizer_cpp PUBLIC ${OpenCV_LIBS})
+target_include_directories(clip_tokenizer_cpp PUBLIC ${OpenCV_INCLUDE_DIRS})
 target_include_directories(clip_tokenizer_cpp PUBLIC ${PCRE2_INCLUDE_DIRS})
 target_compile_options(clip_tokenizer_cpp PUBLIC ${PCRE2_CFLAGS_OTHER})
 target_link_libraries(clip_tokenizer_cpp PUBLIC ${PCRE2_LIBRARIES})
